@@ -1,17 +1,22 @@
-# iptanalyzer
+# ipt
 
 * What is Processor Trace for?
 
-> It can be used to automatically triage exploits. Usually PT logs are huge and it takes long time to process them. iptanalyzer will perform multiprocessing to create cache file to be used for post-mortem analysis.
+> It can be used to automatically triage exploits. Usually PT logs are huge and it takes long time to process them. ipt will perform multiprocessing to create cache file to be used for post-mortem analysis.
 
 ---
 # Tools
 
-* [iptanalyzer](iptanalyzer) is a thin layer upon Intel [libipt](https://github.com/intel/libipt)
-* [pyiptanalyzer](pyiptanalyzer) is a python wrapper around iptanalyzer
+* [ipt](ipt) is a thin layer upon Intel [libipt](https://github.com/intel/libipt)
+* [pyipt](pyipt) is a python wrapper around ipt
    * It features multiprocessing to process large IPT logs
    * It caches major block offsets to be used in post-processing scripts
-   * Some examples are under [pyiptanalyzertool](pyiptanalyzertool) folder
+   * Some examples are under [pyipttool](pyipttool) folder
+
+---
+# Usage
+
+For a good example, please read my article [Using Intel PT for Vulnerability Triaging with IPTAnalyzer](https://darungrim.com/research/2020-05-07-UsingIntelPTForVulnerabilityTriagingWithIPTAnalyzer.html)
 
 ---
 ## Build Instruction
@@ -61,4 +66,4 @@ pip install git+https://github.com/ohjeongwook/windbgtool
 ---
 ## Fix Windbg DLL Compatibility Issues
 
-Please run script from [install_windbg_files.py](https://raw.githubusercontent.com/ohjeongwook/windbgtool/master/installation/install_windbg_files.py) to fix PyKD WinDbg DLL compatibility issues
+PyKD sometimes suffers from WinDbg DLL compability issues. Please run script from [fix_windbg_files.py](https://github.com/ohjeongwook/windbgtool/blob/master/pykdfix/fix_windbg_files.py) when you find the issue affecting PyKD loading.
