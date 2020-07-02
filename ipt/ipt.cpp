@@ -38,6 +38,24 @@ uint64_t ipt::GetSyncOffset()
     return m_startOffset + m_syncOffset;
 }
 
+int ipt::SetInstructionSyncOffset(uint64_t sync_offset)
+{
+    if (m_insnDecoder)
+    {
+        return pt_insn_sync_set(m_insnDecoder, sync_offset);
+    }
+    return -1;
+}
+
+int ipt::SetBlockSyncOffset(uint64_t sync_offset)
+{
+    if (m_blockDecoder)
+    {
+        return pt_blk_sync_set(m_blockDecoder, sync_offset);
+    }
+    return -1;
+}
+
 uint64_t ipt::GetOffset()
 {
     return m_startOffset + m_offset;
@@ -242,7 +260,7 @@ int ipt::InitDecoding(DecodingMode decodingMode)
     return 0;
 }
 
-pt_insn* ipt::DecodeInstruction(bool moveForward) {
+pt_insn* ipt::DecodeInstruction() {
     if (!m_insnDecoder)
     {
         InitDecoding(Instruction);
@@ -252,24 +270,95 @@ pt_insn* ipt::DecodeInstruction(bool moveForward) {
         }
     }
 
-    if (moveForward)
+    if (m_decodeStatus < 0 && m_decodeStatus != -pte_nomap)
     {
-        if (m_decodeStatus < 0)
-        {
-            m_status = pt_insn_sync_forward(m_insnDecoder);
+        m_status = pt_insn_sync_forward(m_insnDecoder);
 
-            if (m_status < 0)
-            {
-                return NULL;
-            }
+        if (m_status < 0)
+        {
+            return NULL;
         }
     }
 
     pt_insn_get_sync_offset(m_insnDecoder, &m_syncOffset);
 
-    for (;;) {
+    int start_offset = GetOffset();
+
+    while (m_status & pts_event_pending) {
         struct pt_event event;
+
+        m_status = pt_insn_get_offset(m_insnDecoder, &m_offset);
         m_status = pt_insn_event(m_insnDecoder, &event, sizeof(event));
+
+        if (event.type == ptev_paging)
+        {
+            m_currentCR3 = event.variant.paging.cr3;
+        }
+        else if (event.type == ptev_async_paging)
+        {
+            m_currentCR3 = event.variant.async_paging.cr3;
+        }
+        else if (event.type == ptev_disabled)
+        {
+        }
+        else if (event.type == ptev_async_disabled)
+        {
+        }
+        else if (event.type == ptev_enabled)
+        {
+        }
+    }
+    m_status = pt_insn_get_offset(m_insnDecoder, &m_offset);
+    pt_insn* p_insn = new pt_insn();
+    m_status = pt_insn_next(m_insnDecoder, p_insn, sizeof(pt_insn));
+    m_decodeStatus = m_status;
+    return p_insn;
+}
+
+bool ipt::ForwardBlockSync()
+{
+    if (!m_blockDecoder) {
+        InitDecoding(Block);
+        if (!m_blockDecoder) {
+            return false;
+        }
+    }
+
+    m_status = pt_blk_sync_forward(m_blockDecoder);
+
+    if (m_status < 0)
+    {
+        return false;
+    }
+
+    pt_blk_get_sync_offset(m_blockDecoder, &m_syncOffset);
+    return true;
+}
+
+pt_block* ipt::DecodeBlock()
+{
+    if (!m_blockDecoder) {
+        InitDecoding(Block);
+        if (!m_blockDecoder) {
+            return NULL;
+        }
+    }
+
+    if (m_decodeStatus < 0 && m_decodeStatus != -pte_nomap)
+    {
+        m_status = pt_blk_sync_forward(m_blockDecoder);
+
+        if (m_status < 0)
+        {
+            return NULL;
+        }
+
+        pt_blk_get_sync_offset(m_blockDecoder, &m_syncOffset);
+    }
+
+    while (m_status & pts_event_pending) {
+        struct pt_event event;
+        m_status = pt_blk_event(m_blockDecoder, &event, sizeof(event));
         if (m_status <= 0)
         {
             break;
@@ -285,58 +374,10 @@ pt_insn* ipt::DecodeInstruction(bool moveForward) {
         }
     }
 
-    m_status = pt_insn_get_offset(m_insnDecoder, &m_offset);
-
-
-    pt_insn* p_insn = new pt_insn();
-    m_decodeStatus = pt_insn_next(m_insnDecoder, p_insn, sizeof(pt_insn));
-
-    return p_insn;
-}
-
-pt_block* ipt::DecodeBlock(bool moveForward) {
-    if (!m_blockDecoder) {
-        InitDecoding(Block);
-        if (!m_blockDecoder) {
-            return NULL;
-        }
-    }
-
-    if (moveForward)
-    {
-        if (m_decodeStatus < 0)
-        {
-            m_status = pt_blk_sync_forward(m_blockDecoder);
-
-            if (m_status < 0)
-            {
-                return NULL;
-            }
-
-            pt_blk_get_sync_offset(m_blockDecoder, &m_syncOffset);
-        }
-    }
-
-    for (;;) {
-        struct pt_event event;
-        m_status = pt_blk_event(m_blockDecoder, &event, sizeof(event));
-        if (m_status <= 0)
-        {
-            break;
-        }
-
-        if (event.type == ptev_paging)
-        {
-            m_currentCR3 = event.variant.paging.cr3;
-        }else if (event.type == ptev_async_paging)
-        {
-            m_currentCR3 = event.variant.async_paging.cr3;
-        }
-    }
-
     m_status = pt_blk_get_offset(m_blockDecoder, &m_offset);
     pt_block* p_block = new pt_block();
     m_decodeStatus = pt_blk_next(m_blockDecoder, p_block, sizeof(pt_block));
+    m_status = m_decodeStatus;
     return p_block;
 }
 

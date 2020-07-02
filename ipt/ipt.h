@@ -56,14 +56,18 @@ public:
     void Open(const char* filename, uint64_t start_offset = 0, uint64_t endoffset = 0);
 
     uint64_t GetSyncOffset();
+    int SetInstructionSyncOffset(uint64_t sync_offset);
+    int SetBlockSyncOffset(uint64_t sync_offset);
+
     uint64_t GetOffset();
     uint64_t GetSize();
     pt_error_code GetStatus();
 
     void AddImage(uint64_t base, const char* filename);
 
-    pt_insn* DecodeInstruction(bool moveForward = true);
-    pt_block* DecodeBlock(bool moveForward = true);
+    pt_insn* DecodeInstruction();
+    bool ForwardBlockSync();
+    pt_block* DecodeBlock();
     pt_error_code GetDecodeStatus();
 
     uint64_t GetCurrentCR3();

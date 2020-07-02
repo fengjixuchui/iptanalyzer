@@ -13,12 +13,15 @@ PYBIND11_MODULE(pyipt, m) {
         .def(py::init())
         .def("open", &ipt::Open)
         .def("get_sync_offset", &ipt::GetSyncOffset)
+        .def("set_instruction_sync_offset", &ipt::SetInstructionSyncOffset)
+        .def("set_block_sync_offset", &ipt::SetBlockSyncOffset)
         .def("get_offset", &ipt::GetOffset)
         .def("get_size", &ipt::GetSize)
         .def("get_status", &ipt::GetStatus)
         .def("add_image", &ipt::AddImage)
         .def("decode_instruction", &ipt::DecodeInstruction)
         .def("decode_block", &ipt::DecodeBlock)
+        .def("forward_block_sync", &ipt::ForwardBlockSync)
         .def("get_decode_status", &ipt::GetDecodeStatus)
         .def("get_current_cr3", &ipt::GetCurrentCR3);
 
