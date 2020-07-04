@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import pickle
 import pprint
+import traceback
 from zipfile import ZipFile
 from datetime import datetime, timedelta
 
@@ -52,15 +53,13 @@ if __name__ == '__main__':
     ptlog_analyzer = pyipttool.ipt.Analyzer(args.dump_file,
                                      dump_symbols = False,
                                      dump_instructions = False,
-                                     load_image = True,
-                                     progress_report_interval = 0)
+                                     load_image = True)
 
     ptlog_analyzer.open_ipt_log(args.pt_file, start_offset = args.start_offset, end_offset = args.end_offset)
-    #ptlog_analyzer.add_load_image_address_range(start_address, end_address)
 
-    for insn in ptlog_analyzer.enumerate_instructions(instruction_offset = args.instruction_offset, start_address = start_address, end_address = end_address):
+    for insn in ptlog_analyzer.decode_instructions(offset = args.instruction_offset, start_address = start_address, end_address = end_address):
         try:
             disasmline = debugger.get_disassembly_line(insn.ip)
             print('Instruction: %s' % (disasmline))
         except:
-            pass
+            traceback.print_exc()
